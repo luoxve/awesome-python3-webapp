@@ -33,6 +33,7 @@ def post(path):
 def get_required_kw_args(fn):
     args = []
     params = inspect.signature(fn).parameters
+    for name, param in params.
 
 class RequestHandler(object):
     def __init__(self, app, fn):
