@@ -99,14 +99,39 @@ class RequestHandler(object):
                 else:
                     return web.HTTPBadRequest('Unsupported Content-Type: %s' % request.content_type)
             if request.method == 'GET':
-                qs = request.query_string # TODO
+                qs = request.query_string # url中?号后面的值，http://localhost:9000/api/test?a=1&b=2
                 if qs:
                     kw = dict()
-                    for k, v in parse.parse_qs(qs, True).items(): # TODO 打开IDE测试一下
+                    for k, v in parse.parse_qs(qs, True).items(): # 'a=1&b=2' k=a v=['1'], k=b v=['2']
                         kw[k] = v[0]
-
-        r = yield from self._func(**kw)
-        return r
+        if kw is None:
+            kw = dict(**request.match_info)
+        else:
+            if not self._has_var_kw_arg and self._named_kw_args:
+                # remove all unamed kw
+                copy = dict()
+                for name in self._named_kw_args:
+                    if name in kw:
+                        copy[name] = kw[name]
+                kw = copy
+            # check named arg
+            for k, v in request.match_info.items():
+                if k in kw:
+                    logging.warning('Duplicate arg name in named arg and kw args: %s' % k)
+                kw[k] = v
+        if self._has_request_arg:
+            kw['request'] = request
+        #check required kw
+        if self._required_kw_args:
+            for name in self._required_kw_args:
+                if not name in kw:
+                    return web.HTTPBadRequest('Missing argument: %s' % name)
+        logging.info('call with args: %s' % str(kw))
+        try:
+            r = yield from self._func(**kw)
+            return r
+        except APIError as e:
+            return dict(error=e.error, data=e.data, message=e.message)
 
 def add_static(app):
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static') # TODO 看下path
