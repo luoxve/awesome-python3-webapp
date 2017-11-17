@@ -3,7 +3,13 @@
 
 __author__ = 'VVL'
 
-import logging, functools, asyncio
+import logging, functools, asyncio, os, inspect
+
+from urllib import parse
+
+from aiohttp import web
+
+from apis import APIError
 
 def get(path):
     '''
@@ -33,7 +39,7 @@ def post(path):
 def get_required_kw_args(fn):
     args = []
     params = inspect.signature(fn).parameters
-    for name, param in params.items:
+    for name, param in params.items():
         if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default == inspect.Parameter.empty:
             args.append(name)
     return tuple(args)
@@ -48,7 +54,7 @@ def get_named_kw_args(fn):
 
 def has_named_kw_args(fn):
     params = inspect.signature(fn).parameters
-    for name, param in param.items():
+    for name, param in params.items():
         if param.kind == inspect.Parameter.KEYWORD_ONLY:
             return True
 
@@ -155,7 +161,7 @@ def add_routes(app, module_name):
     if n == (-1):
         mod = __import__(module_name, globals(), locals())
     else:
-        name = module_name(n+1:)
+        name = module_name[n+1:]
         mod = getattr(__import__(module_name[:n], globals(), locals(), [name]), name)
     for attr in dir(mod):
         if attr.startswith('_'):
