@@ -21,14 +21,6 @@ from coroweb import add_routes, add_static
 def index(request):
     return web.Response(body=b'<h1>Awesome</h1>', content_type='text/html')
 
-# @asyncio.coroutine
-# def init(loop):
-#     app = web.Application(loop=loop)
-#     app.router.add_route('GET', '/', index)
-#     srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 9000)
-#     logging.info('server started at http://127.0.0.1:9000...')
-#     return srv
-
 def init_jinja2(app, **kw):
     logging.info('init jinja2...')
     options = dict(
@@ -110,6 +102,14 @@ def datetime_filter(t):
         return u'%s天前' % (delta // 86400)
     dt = datetime.fromtimestamp(t)
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
+
+# @asyncio.coroutine
+# def init(loop):
+#     app = web.Application(loop=loop)
+#     app.router.add_route('GET', '/', index)
+#     srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 9000)
+#     logging.info('server started at http://127.0.0.1:9000...')
+#     return srv
 
 @asyncio.coroutine
 def init(loop):
