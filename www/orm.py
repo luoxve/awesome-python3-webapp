@@ -160,7 +160,7 @@ class Model(dict, metaclass=ModelMetaclass):
             else:
                 raise ValueError('Invalid limit value: %s' % str(limit))
         rs = yield from select(' '.join(sql), args)
-        return [cls(**r) for r in rs]
+        return [cls(**r) for r in rs] # cls(**r) 返回cls类的一个实例, r <class 'dict'>, rs <clss 'list'>
 
     @classmethod
     @asyncio.coroutine

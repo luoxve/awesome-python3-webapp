@@ -106,6 +106,7 @@ class RequestHandler(object):
                     return web.HTTPBadRequest('Unsupported Content-Type: %s' % request.content_type)
             if request.method == 'GET':
                 qs = request.query_string # url中?号后面的值，http://localhost:9000/api/test?a=1&b=2
+                print('request.query_string: %s' % qs)
                 if qs:
                     kw = dict()
                     for k, v in parse.parse_qs(qs, True).items(): # 'a=1&b=2' k=a v=['1'], k=b v=['2']
@@ -158,11 +159,13 @@ def add_route(app, fn):
 
 def add_routes(app, module_name):
     n = module_name.rfind('.')
+    # 动态导入模块
     if n == (-1):
         mod = __import__(module_name, globals(), locals())
     else:
         name = module_name[n+1:]
         mod = getattr(__import__(module_name[:n], globals(), locals(), [name]), name)
+    print('mod: %s, %s' % (mod,type(mod))) # mod: <module 'handlers' from 'D:\\workpy\\awesome-python3-webapp\\www\\handlers.py'>, <class 'module'>
     for attr in dir(mod):
         if attr.startswith('_'):
             continue
@@ -170,5 +173,6 @@ def add_routes(app, module_name):
         if callable(fn):
             method = getattr(fn, '__method__', None)
             path = getattr(fn, '__route__', None)
+            print("1method: %s, path: %s, __name__: %s" % (method, path, fn.__name__))
             if method and path:
                 add_route(app, fn)
