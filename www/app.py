@@ -51,7 +51,7 @@ def logger_factory(app, handler):
         # 记录日志
         logging.info('Request: %s %s' % (request.method, request.path))
         # 继续处理请求
-        return (yield from handler(request))
+        return (yield from handler(request)) # middleware 是按顺序执行，此handler() == auth()
     return logger
 
 @asyncio.coroutine
@@ -68,7 +68,7 @@ def auth_factory(app, handler):
                 request.__user__ = user
         if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
             return web.HTTPFound('/signin')
-        return (yield from handler(request)) # TODO
+        return (yield from handler(request)) # 此handler() == response()
     return auth
 
 @asyncio.coroutine
@@ -76,7 +76,7 @@ def response_factory(app, handler):
     @asyncio.coroutine
     def response(request):
         # 结果
-        r = yield from handler(request)
+        r = yield from handler(request) # 此处注意（调用的是请求的方法: -> RequestHandler(app, fn) -> register()）
         if isinstance(r, web.StreamResponse):
             return r
         if isinstance(r, bytes):

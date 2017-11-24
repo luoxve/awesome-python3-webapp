@@ -34,6 +34,7 @@ def post(path):
             return func(*args, **kw)
         wrapper.__method__ = 'POST'
         wrapper.__route__ = path
+        return wrapper
     return decorator
 
 def get_required_kw_args(fn):
@@ -141,7 +142,7 @@ class RequestHandler(object):
             return dict(error=e.error, data=e.data, message=e.message)
 
 def add_static(app):
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static') # TODO 看下path
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
     app.router.add_static('/static/', path)
     logging.info('add static %s => %s' % ('/static/', path))
 
@@ -173,6 +174,5 @@ def add_routes(app, module_name):
         if callable(fn):
             method = getattr(fn, '__method__', None)
             path = getattr(fn, '__route__', None)
-            print("1method: %s, path: %s, __name__: %s" % (method, path, fn.__name__))
             if method and path:
                 add_route(app, fn)

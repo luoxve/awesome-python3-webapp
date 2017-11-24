@@ -7,12 +7,16 @@ __author__ = 'VVL'
 
 import re, json, logging, hashlib, base64, asyncio, time
 
+from aiohttp import web
+
 from coroweb import get, post
+from apis import APIError, APIValueError, APIResourceNotFoundError
 
 from models import User, Comment, Blog, next_id
+from config import configs
 
 COOKIE_NAME = 'awesession'
-_COOKIE_KEY = 'configs.sessioin.secret'
+_COOKIE_KEY = configs.session.secret
 
 # 计算加密cookie
 def user2cookie(user, max_age):
@@ -76,6 +80,14 @@ def signin():
         '__template__': 'signin.html'
     }
 
+@get('/signout')
+def signout(request):
+    referer = request.headers.get('Referer')
+    r = web.HTTPFound(referer or '/')
+    r.set_cookie(COOKIE_NAME, '-deleted-', max_age=0, httponly=True)
+    logging.info('use signed out.')
+    return r
+
 @post('/api/authenticate')
 def authenticate(*, email, passwd):
     if not email or not email.strip():
@@ -108,11 +120,11 @@ _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 def api_register_user(*, email, name, passwd):
     if not name or not name.strip():
         raise APIValueError('name')
-    if not email or not email.strip():
+    if not email or not _RE_EMAIL.match(email):
         raise APIValueError('email')
-    if not passwd or not passwd.strip():
+    if not passwd or not _RE_SHA1.match(passwd):
         raise APIValueError('passwd')
-    users = yield from User.findAll('email=?', [email]) # TODO
+    users = yield from User.findAll('email=?', [email])
     if len(users) > 0:
         raise APIError('register:failed', 'email', 'Email is already in use.')
     uid = next_id()
