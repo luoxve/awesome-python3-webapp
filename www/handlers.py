@@ -7,6 +7,8 @@ __author__ = 'VVL'
 
 import re, json, logging, hashlib, base64, asyncio, time
 
+import markdown2
+
 from aiohttp import web
 
 from coroweb import get, post
@@ -33,7 +35,7 @@ def get_page_index(page_str):
     return p
 
 def text2html(text): # TODO
-    lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'), fiter(lambda s: s.strip() != '', text.split('\n')))
+    lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'), filter(lambda s: s.strip() != '', text.split('\n')))
     return ''.join(lines)
 
 # 计算加密cookie
@@ -88,7 +90,7 @@ def index(request):
     }
 
 @get('/blog/{id}')
-def get_blog(id):
+def get_blog(id, request):
     blog = yield from Blog.find(id)
     comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
     for c in comments:
@@ -97,7 +99,8 @@ def get_blog(id):
     return {
         '__template__': 'blog.html',
         'blog': blog,
-        'comments': comments
+        'comments': comments,
+        '__user__': request.__user__
     }
 
 @get('/register')
@@ -192,7 +195,30 @@ def api_comments(*, page='1'):
     return dict(page=p, comments=comments)
 
 # 创建评论
+@post('/api/blogs/{id}/comments')
+def api_create_comments(id, request, *, content):
+    user = request.__user__
+    if user is None:
+        raise APIPermissionError('Please signin first.')
+    if not content or not content.strip():
+        raise APIValueError('content')
+    blog = yield from Blog.find(id)
+    if blog is None:
+        raise APIResourceNotFoundError('Blog')
+    comment = Comment(blog_id=blog.id, user_id=user.id, user_name=user.name, user_image=user.image, content=content.strip())
+    yield from comment.save()
+    return comment
+
 # 删除评论
+@post('/api/comments/{id}/delete')
+def api_delete_comments(id, request):
+    check_admin(request)
+    comment = yield from Comment.find(id)
+    if comment is None:
+        raise APIResourceNotFoundError('Comment')
+    yield from comment.delete()
+    return dict(id=id)
+
 # 获取用户
 
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
