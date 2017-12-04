@@ -151,7 +151,7 @@ def authenticate(*, email, passwd):
 
 @get('/manage')
 def manage():
-    return 'redirct:/manage/comments'
+    return 'redirect:/manage/comments'
 
 @get('/manage/comments')
 def manage_comments(*, page=1):
@@ -181,6 +181,13 @@ def manage_edit_blog(*, id):
         '__template__': 'manage_blog_edit.html',
         'id': id,
         'action': '/api/blogs/%s' % id
+    }
+
+@get('/manage/users')
+def manage_users(*, page='1'):
+    return {
+        '__template__': 'manage_users.html',
+        'page_index': get_page_index(page)
     }
 
 # 获取评论
@@ -220,6 +227,17 @@ def api_delete_comments(id, request):
     return dict(id=id)
 
 # 获取用户
+@get('/api/users')
+def api_get_users(*, page='1'):
+    page_index = get_page_index(page)
+    num = yield from User.findNumber('count(id)')
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page=p, users=())
+    users = yield from User.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    for u in users:
+        u.passwd = '******'
+    return dict(page=p, users=users)
 
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
