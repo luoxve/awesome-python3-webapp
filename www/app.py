@@ -7,7 +7,8 @@ __author__ = 'VVL'
 async web application
 '''
 
-import logging; logging.basicConfig(level=logging.INFO)
+import logging; logging.basicConfig(level=logging.INFO,  
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
 import asyncio, os, json, time
 from datetime import datetime
@@ -74,6 +75,20 @@ def auth_factory(app, handler):
     return auth
 
 @asyncio.coroutine
+def data_factory(app, handler):
+    @asyncio.coroutine
+    def parse_data(request):
+        if request.method == 'POST':
+            if request.content_type.startswith('application/json'):
+                request.__data__ = yield from request.json()
+                logging.info('request json: %s' % request.__data__)
+            elif request.content_type.startswith('application/x-www-from-urlencoded'):
+                request.__data__ = yield from request.post()
+                logging.info('request post: %s' % requesst.__data__)
+        return (yield from handlers(request))
+    return parse_data
+
+@asyncio.coroutine
 def response_factory(app, handler):
     @asyncio.coroutine
     def response(request):
@@ -96,10 +111,9 @@ def response_factory(app, handler):
             if template is None:
                 resp = web.Response(body=json.dumps(r, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
                 resp.content_type = 'application/json;charset=utf-8'
-                print('1############=================: %s' % resp.headers)
-                print('2############=================: %s' % resp.body)
                 return resp
             else:
+                r['__user__'] = request.__user__
                 resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
