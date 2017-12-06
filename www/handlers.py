@@ -203,7 +203,7 @@ def api_comments(*, page='1'):
     page_index = get_page_index(page)
     num = yield from Comment.findNumber('count(id)')
     p = Page(num, page_index)
-    if num:
+    if num == 0:
         return dict(page=p, comments=())
     comments = yield from Comment.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     return dict(page=p, comments=comments)
@@ -230,7 +230,7 @@ def api_delete_comments(id, request):
     comment = yield from Comment.find(id)
     if comment is None:
         raise APIResourceNotFoundError('Comment')
-    yield from comment.delete()
+    yield from comment.remove()
     return dict(id=id)
 
 # 获取用户

@@ -62,8 +62,6 @@ def auth_factory(app, handler):
         logging.info('check user: %s %s' % (request.method, request.path))
         request.__user__ = None
         cookie_str = request.cookies.get(COOKIE_NAME)
-        print('request.headers: %s' % request.headers)
-        print('request.cookies: %s' % request.cookies)
         if cookie_str:
             user = yield from cookie2user(cookie_str)
             if user:
@@ -94,7 +92,7 @@ def response_factory(app, handler):
     def response(request):
         # 结果
         r = yield from handler(request) # 此处注意（调用的是请求的方法: -> RequestHandler(app, fn) -> register()）
-        if isinstance(r, web.StreamResponse):
+        if isinstance(r, web.StreamResponse): # '/signout' 调用后走的是此项
             return r
         if isinstance(r, bytes):
             resp = web.Response(body=r)
@@ -108,6 +106,7 @@ def response_factory(app, handler):
             return resp
         if isinstance(r, dict):
             template = r.get('__template__')
+            print('template: %s' % template)
             if template is None:
                 resp = web.Response(body=json.dumps(r, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
                 resp.content_type = 'application/json;charset=utf-8'
