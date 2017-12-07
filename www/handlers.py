@@ -156,7 +156,7 @@ def authenticate(*, email, passwd):
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
 
-@get('/manage')
+@get('/manage/')
 def manage():
     return 'redirect:/manage/comments'
 
@@ -272,6 +272,20 @@ def api_register_user(*, email, name, passwd):
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
+
+# 修改用户状态(管理员 <==> 普通用户)
+@post('/api/users/{id}')
+def api_update_user(id, request):
+    check_admin(request)
+    user = yield from User.find(id)
+    if not user:
+        return None
+    if user.admin:
+        user.admin = False
+    else:
+        user.admin = True
+    yield from user.update()
+    return user
 
 @get('/api/blogs')
 def api_blogs(*, page='1'):

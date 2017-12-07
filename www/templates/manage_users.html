@@ -12,6 +12,24 @@ function initVM(data) {
         data: {
             users: data.users,
             page: data.page
+        },
+        methods: {
+            update_user: function (user) {
+                var content;
+                if (!user.admin) {
+                    content = '确认将用户“' + user.name + '”提升为管理员？'
+                } else {
+                    content = '确认将管理员“' + user.name + '”降级为普通用户？'
+                }
+                if (confirm(content)) {
+                    postJSON('/api/users/' + user.id, function(err, r) {
+                        if (err) {
+                            return error(err);
+                        }
+                        refresh();
+                    });
+                }
+            }
         }
     });
 }
@@ -54,8 +72,9 @@ $(function() {
             <thead>
                 <tr>
                     <th class="uk-width-4-10">名字</th>
-                    <th class="uk-width-4-10">电子邮件</th>
+                    <th class="uk-width-3-10">电子邮件</th>
                     <th class="uk-width-2-10">注册时间</th>
+                    <th class="uk-width-1-10">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -69,6 +88,12 @@ $(function() {
                     </td>
                     <td>
                         <span v-text="user.created_at.toDateTime()"></span>
+                    </td>
+                    <td>
+                        <a href="#0" v-on="click: update_user(user)">
+                            <i v-if="!user.admin" class="uk-icon-arrow-up"></i>
+                            <i v-if="user.admin" class="uk-icon-arrow-down"></i>
+                        </a>
                     </td>
                 </tr>
             </tbody>
